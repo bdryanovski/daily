@@ -29,22 +29,26 @@
 
 ### Recommendation: Rust
 
-Both Rust and Go are solid choices, but for your specific goals (iOS Swift wrapper, WASM/TypeScript bindings, performance, embedded SQLite) **Rust is the stronger pick**. Here's the honest comparison:
+Both Rust and Go are solid choices, but for your specific goals (iOS Swift wrapper, WASM/TypeScript
+bindings, performance, embedded SQLite) **Rust is the stronger pick**. Here's the honest comparison:
 
-| Concern | Rust | Go |
-|---|---|---|
-| C FFI for Swift | Excellent — `cbindgen` generates headers automatically | Possible with `cgo`, but awkward and adds Go runtime to binary |
-| WASM | First-class via `wasm-pack` / `wasm-bindgen` | Experimental, large binary size |
-| Embedded SQLite | `rusqlite` is mature and well-maintained | `mattn/go-sqlite3` requires CGO — cross-compilation pain |
-| iOS static lib | `cargo build --target aarch64-apple-ios` just works | Requires Go mobile toolchain, limited |
-| Binary size | Small static libs, no GC | Larger (runtime included) |
-| Async | `tokio` is excellent for REST layer | Goroutines are simpler and more ergonomic |
-| Learning curve | Steeper (borrow checker) | Gentler |
-| Filesystem safety | Ownership model prevents file handle bugs | Garbage collected, less control |
+| Concern           | Rust                                                   | Go                                                             |
+| ----------------- | ------------------------------------------------------ | -------------------------------------------------------------- |
+| C FFI for Swift   | Excellent — `cbindgen` generates headers automatically | Possible with `cgo`, but awkward and adds Go runtime to binary |
+| WASM              | First-class via `wasm-pack` / `wasm-bindgen`           | Experimental, large binary size                                |
+| Embedded SQLite   | `rusqlite` is mature and well-maintained               | `mattn/go-sqlite3` requires CGO — cross-compilation pain       |
+| iOS static lib    | `cargo build --target aarch64-apple-ios` just works    | Requires Go mobile toolchain, limited                          |
+| Binary size       | Small static libs, no GC                               | Larger (runtime included)                                      |
+| Async             | `tokio` is excellent for REST layer                    | Goroutines are simpler and more ergonomic                      |
+| Learning curve    | Steeper (borrow checker)                               | Gentler                                                        |
+| Filesystem safety | Ownership model prevents file handle bugs              | Garbage collected, less control                                |
 
-**Verdict:** Use Rust for the core library. For the REST API layer specifically, you can still use Go if you prefer by calling the Rust library via FFI from Go — but keeping everything in Rust is simpler.
+**Verdict:** Use Rust for the core library. For the REST API layer specifically, you can still use
+Go if you prefer by calling the Rust library via FFI from Go — but keeping everything in Rust is
+simpler.
 
-The borrow checker will feel painful at first but it perfectly models the problem of "one piece of data, multiple UIs consuming it concurrently" — exactly your use case.
+The borrow checker will feel painful at first but it perfectly models the problem of "one piece of
+data, multiple UIs consuming it concurrently" — exactly your use case.
 
 ---
 
@@ -365,7 +369,8 @@ pub struct Tag {
 
 ## 4. Storage Architecture
 
-The key abstraction is a trait. The rest of the library never touches a backend directly — it only speaks the trait. This is what allows you to swap SQLite for Markdown seamlessly.
+The key abstraction is a trait. The rest of the library never touches a backend directly — it only
+speaks the trait. This is what allows you to swap SQLite for Markdown seamlessly.
 
 ```rust
 // crates/lifetrack-core/src/storage/mod.rs
@@ -436,7 +441,8 @@ pub struct DateRange {
 
 ### 4.1 Computed Statistics
 
-Stats are computed on top of raw entries — this logic lives in `core` and doesn't need to be reimplemented per backend.
+Stats are computed on top of raw entries — this logic lives in `core` and doesn't need to be
+reimplemented per backend.
 
 ```rust
 // crates/lifetrack-core/src/domain/stats.rs
@@ -466,7 +472,8 @@ impl HabitStats {
 
 ## 5. SQLite Backend
 
-The SQLite backend lives in `lifetrack-sqlite` and implements `Store`. It uses `rusqlite` with WAL mode for performance and concurrent reads.
+The SQLite backend lives in `lifetrack-sqlite` and implements `Store`. It uses `rusqlite` with WAL
+mode for performance and concurrent reads.
 
 ### 5.1 Setup
 
@@ -481,7 +488,8 @@ serde_json = "1"
 thiserror = "1"
 ```
 
-> Use `features = ["bundled"]` so rusqlite compiles SQLite from source — no system dependency needed. This is important for cross-compilation to iOS.
+> Use `features = ["bundled"]` so rusqlite compiles SQLite from source — no system dependency
+> needed. This is important for cross-compilation to iOS.
 
 ### 5.2 Database Initialization
 
@@ -690,7 +698,9 @@ impl Store for SqliteStore {
 
 ## 6. Markdown / Filesystem Backend
 
-This backend stores each entity as a Markdown file with YAML front-matter — identical to how Obsidian stores notes. It makes iCloud sync completely natural since iCloud syncs files, not databases.
+This backend stores each entity as a Markdown file with YAML front-matter — identical to how
+Obsidian stores notes. It makes iCloud sync completely natural since iCloud syncs files, not
+databases.
 
 ### 6.1 File Layout
 
@@ -722,7 +732,8 @@ This backend stores each entity as a Markdown file with YAML front-matter — id
 
 ### 6.2 Markdown File Format
 
-Every entity uses YAML front-matter. The body is freeform markdown — this is what the user sees in Obsidian.
+Every entity uses YAML front-matter. The body is freeform markdown — this is what the user sees in
+Obsidian.
 
 ```markdown
 ---
@@ -737,23 +748,23 @@ target:
   goal_minutes: 30
 tags: [health, morning]
 archived: false
-created_at: "2025-01-01T07:00:00Z"
-updated_at: "2025-01-15T08:30:00Z"
+created_at: '2025-01-01T07:00:00Z'
+updated_at: '2025-01-15T08:30:00Z'
 ---
 
 Go outside and run at least 30 minutes. Focus on pace not distance.
 
 ## Notes
 
-Started this habit after reading _Atomic Habits_. Key insight: attach it to existing
-morning coffee routine.
+Started this habit after reading _Atomic Habits_. Key insight: attach it to existing morning coffee
+routine.
 ```
 
 ```markdown
 ---
 id: 661f9500-f39c-52e5-b827-557766550001
 type: journal
-date: "2025-01-15"
+date: '2025-01-15'
 mood:
   score: 3
   label: energized
@@ -842,7 +853,8 @@ fn render_habit_to_markdown(habit: &Habit) -> String {
 
 ### 6.4 Dual-Store (SQLite + FS Mirror)
 
-For the best of both worlds — fast queries from SQLite, iCloud-syncable files as source of truth — implement a `MirrorStore`:
+For the best of both worlds — fast queries from SQLite, iCloud-syncable files as source of truth —
+implement a `MirrorStore`:
 
 ```rust
 // crates/lifetrack-core/src/storage/mirror.rs
@@ -885,7 +897,8 @@ impl MirrorStore {
 
 ## 7. Core API Design
 
-The `Store` trait is low-level. Build a `LifeTrack` facade on top — the actual public API that CLI, REST, and UI code will call.
+The `Store` trait is low-level. Build a `LifeTrack` facade on top — the actual public API that CLI,
+REST, and UI code will call.
 
 ```rust
 // crates/lifetrack-core/src/lib.rs
@@ -1063,7 +1076,8 @@ pub struct WriteJournalRequest {
 
 ## 8. Query & Filter System
 
-A type-safe query builder that each backend can translate to its native query language (SQL or file iteration).
+A type-safe query builder that each backend can translate to its native query language (SQL or file
+iteration).
 
 ```rust
 // crates/lifetrack-core/src/query/mod.rs
@@ -1196,7 +1210,8 @@ println!("Found {} tasks (total: {})", page.items.len(), page.total);
 
 ## 9. Sync & Conflict Resolution
 
-When running with `MirrorStore` (SQLite + iCloud FS), you need to handle the case where a file was edited externally (e.g. in Obsidian on another device).
+When running with `MirrorStore` (SQLite + iCloud FS), you need to handle the case where a file was
+edited externally (e.g. in Obsidian on another device).
 
 ### 9.1 Conflict Detection Strategy
 
@@ -1288,7 +1303,8 @@ fn main() {
 
 ### 10.2 C API Pattern
 
-The pattern: pass JSON strings across the FFI boundary. It's simpler than mapping every struct to C, and JSON parsing on both sides is trivial. This is what many production SDK FFI layers do.
+The pattern: pass JSON strings across the FFI boundary. It's simpler than mapping every struct to C,
+and JSON parsing on both sides is trivial. This is what many production SDK FFI layers do.
 
 ```rust
 // crates/lifetrack-ffi/src/lib.rs
@@ -1526,37 +1542,37 @@ impl WasmLifeTrack {
 // bindings/typescript/src/index.ts
 import init, { WasmLifeTrack } from '../wasm/lifetrack_wasm';
 
-export * from './types';  // Re-export generated TypeScript types
+export * from './types'; // Re-export generated TypeScript types
 
 let _db: WasmLifeTrack | null = null;
 
 export async function initLifeTrack(): Promise<void> {
-    await init();  // Load .wasm file
-    _db = await new WasmLifeTrack();
+  await init(); // Load .wasm file
+  _db = await new WasmLifeTrack();
 }
 
 function db(): WasmLifeTrack {
-    if (!_db) throw new Error('Call initLifeTrack() first');
-    return _db;
+  if (!_db) throw new Error('Call initLifeTrack() first');
+  return _db;
 }
 
 export const habits = {
-    create: (req: CreateHabitRequest) => db().createHabit(req),
-    list:   (query?: QueryOptions)    => db().listHabits(query ?? {}),
-    log:    (req: LogHabitRequest)    => db().logHabit(req),
-    streak: (habitId: string)         => db().habitStreak(habitId),
+  create: (req: CreateHabitRequest) => db().createHabit(req),
+  list: (query?: QueryOptions) => db().listHabits(query ?? {}),
+  log: (req: LogHabitRequest) => db().logHabit(req),
+  streak: (habitId: string) => db().habitStreak(habitId),
 };
 
 export const tasks = {
-    create:   (req: CreateTaskRequest) => db().createTask(req),
-    complete: (id: string)             => db().completeTask(id),
-    list:     (query?: QueryOptions)   => db().listTasks(query ?? {}),
+  create: (req: CreateTaskRequest) => db().createTask(req),
+  complete: (id: string) => db().completeTask(id),
+  list: (query?: QueryOptions) => db().listTasks(query ?? {}),
 };
 
 export const journal = {
-    write: (req: WriteJournalRequest) => db().writeJournal(req),
-    today: ()                          => db().todayEntry(),
-    search: (text: string)             => db().searchJournal(text),
+  write: (req: WriteJournalRequest) => db().writeJournal(req),
+  today: () => db().todayEntry(),
+  search: (text: string) => db().searchJournal(text),
 };
 ```
 
@@ -1566,53 +1582,56 @@ export const journal = {
 // Consider using typeshare (https://github.com/1Password/typeshare) to auto-generate these.
 
 export interface Habit {
-    id: string;
-    title: string;
-    description?: string;
-    tags: string[];
-    frequency: Frequency;
-    target: HabitTarget;
-    reminder?: Reminder;
-    archived: boolean;
-    createdAt: string;  // ISO8601
-    updatedAt: string;
+  id: string;
+  title: string;
+  description?: string;
+  tags: string[];
+  frequency: Frequency;
+  target: HabitTarget;
+  reminder?: Reminder;
+  archived: boolean;
+  createdAt: string; // ISO8601
+  updatedAt: string;
 }
 
 export type Frequency =
-    | { type: 'Daily' }
-    | { type: 'Weekly'; days: string[] }
-    | { type: 'Monthly'; days: number[] }
-    | { type: 'Interval'; everyNDays: number };
+  | { type: 'Daily' }
+  | { type: 'Weekly'; days: string[] }
+  | { type: 'Monthly'; days: number[] }
+  | { type: 'Interval'; everyNDays: number };
 
 export type HabitTarget =
-    | { type: 'Boolean' }
-    | { type: 'Count'; goal: number; unit: string }
-    | { type: 'Duration'; goalMinutes: number }
-    | { type: 'Numeric'; goal: number; unit: string; direction: 'AtLeast' | 'AtMost' | 'Exactly' };
+  | { type: 'Boolean' }
+  | { type: 'Count'; goal: number; unit: string }
+  | { type: 'Duration'; goalMinutes: number }
+  | { type: 'Numeric'; goal: number; unit: string; direction: 'AtLeast' | 'AtMost' | 'Exactly' };
 
 export interface Task {
-    id: string;
-    title: string;
-    body?: string;
-    status: 'Inbox' | 'Todo' | 'InProgress' | 'Waiting' | 'Done' | 'Cancelled';
-    priority: 'Low' | 'Medium' | 'High' | 'Critical';
-    tags: string[];
-    projectId?: string;
-    dueDate?: string;    // YYYY-MM-DD
-    completedAt?: string;
-    checklist: ChecklistItem[];
-    createdAt: string;
-    updatedAt: string;
+  id: string;
+  title: string;
+  body?: string;
+  status: 'Inbox' | 'Todo' | 'InProgress' | 'Waiting' | 'Done' | 'Cancelled';
+  priority: 'Low' | 'Medium' | 'High' | 'Critical';
+  tags: string[];
+  projectId?: string;
+  dueDate?: string; // YYYY-MM-DD
+  completedAt?: string;
+  checklist: ChecklistItem[];
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 
-> **Tip:** Use [`typeshare`](https://github.com/1Password/typeshare) to auto-generate TypeScript types from your Rust types. Add `#[typeshare]` to your domain structs and run `typeshare ./crates/lifetrack-core --lang=typescript --output-file=bindings/typescript/src/types.ts`.
+> **Tip:** Use [`typeshare`](https://github.com/1Password/typeshare) to auto-generate TypeScript
+> types from your Rust types. Add `#[typeshare]` to your domain structs and run
+> `typeshare ./crates/lifetrack-core --lang=typescript --output-file=bindings/typescript/src/types.ts`.
 
 ---
 
 ## 12. Plugin Interface Layer
 
-Consumers of the core library (REST, TUI, CLI) each live in their own crate/package and only depend on `lifetrack-core`.
+Consumers of the core library (REST, TUI, CLI) each live in their own crate/package and only depend
+on `lifetrack-core`.
 
 ### 12.1 REST API (Axum)
 
@@ -1864,37 +1883,44 @@ clang -o test_ffi tests/ffi_test.c \
 ## 15. Roadmap & Milestones
 
 ### Phase 1 — Core Library (Weeks 1–3)
+
 - [ ] Domain types: `Habit`, `Task`, `JournalEntry`, and friends
 - [ ] `Store` trait defined
 - [ ] SQLite backend with migrations
-- [ ] `LifeTrack` facade with `create_habit`, `log_habit`, `create_task`, `complete_task`, `write_journal`
+- [ ] `LifeTrack` facade with `create_habit`, `log_habit`, `create_task`, `complete_task`,
+      `write_journal`
 - [ ] Basic query/filter system
 - [ ] Unit tests for streak computation
 
 ### Phase 2 — CLI + FS Backend (Weeks 4–5)
+
 - [ ] Filesystem backend (read/write markdown files)
 - [ ] `MirrorStore` dual-write
 - [ ] `lifetrack-cli` with habit logging, task management, journal writing
 - [ ] Basic reconciliation on startup
 
 ### Phase 3 — REST + TUI (Weeks 6–8)
+
 - [ ] Axum REST API with full CRUD + query
 - [ ] Ratatui TUI with dashboard, habit tracker, task list, journal
 - [ ] OpenAPI spec (using `utoipa`)
 
 ### Phase 4 — Swift Bindings + iOS (Weeks 9–11)
+
 - [ ] C FFI layer with `cbindgen`
 - [ ] XCFramework build script
 - [ ] Swift Package with Codable wrappers
 - [ ] Basic SwiftUI app consuming the library
 
 ### Phase 5 — WASM + Web (Weeks 12–14)
+
 - [ ] `wasm-pack` build
 - [ ] TypeScript bindings with `typeshare` types
 - [ ] Simple web UI (SvelteKit or React)
 - [ ] PWA with offline capability via OPFS (Origin Private File System for SQLite in browser)
 
 ### Phase 6 — Polish & Sync (Ongoing)
+
 - [ ] Full conflict resolution UI in iOS and TUI
 - [ ] Notification/reminder system (platform-specific)
 - [ ] Import from Obsidian, Notion, Todoist
@@ -1905,27 +1931,28 @@ clang -o test_ffi tests/ffi_test.c \
 
 ## Key Dependencies Summary
 
-| Crate | Purpose |
-|---|---|
-| `rusqlite` + `bundled` | SQLite — embedded, no system dep |
-| `serde` + `serde_json` | Serialization everywhere |
-| `chrono` | Date/time types |
-| `uuid` | Entity IDs |
-| `thiserror` | Error types |
-| `async-trait` | Async in trait definitions |
-| `tokio` | Async runtime |
-| `cbindgen` | Generate C headers from Rust |
-| `wasm-bindgen` | WASM + JS interop |
-| `serde-wasm-bindgen` | JS↔Rust value conversion |
-| `axum` | REST API |
-| `clap` | CLI arg parsing |
-| `ratatui` | TUI framework |
-| `gray-matter` | Parse YAML front-matter in markdown |
-| `serde_yaml` | YAML serialization for FS backend |
-| `typeshare` | Generate TypeScript types from Rust |
-| `tracing` | Structured logging |
-| `tempfile` | Temp dirs in tests |
+| Crate                  | Purpose                             |
+| ---------------------- | ----------------------------------- |
+| `rusqlite` + `bundled` | SQLite — embedded, no system dep    |
+| `serde` + `serde_json` | Serialization everywhere            |
+| `chrono`               | Date/time types                     |
+| `uuid`                 | Entity IDs                          |
+| `thiserror`            | Error types                         |
+| `async-trait`          | Async in trait definitions          |
+| `tokio`                | Async runtime                       |
+| `cbindgen`             | Generate C headers from Rust        |
+| `wasm-bindgen`         | WASM + JS interop                   |
+| `serde-wasm-bindgen`   | JS↔Rust value conversion            |
+| `axum`                 | REST API                            |
+| `clap`                 | CLI arg parsing                     |
+| `ratatui`              | TUI framework                       |
+| `gray-matter`          | Parse YAML front-matter in markdown |
+| `serde_yaml`           | YAML serialization for FS backend   |
+| `typeshare`            | Generate TypeScript types from Rust |
+| `tracing`              | Structured logging                  |
+| `tempfile`             | Temp dirs in tests                  |
 
 ---
 
-*This document is the single source of truth for the LifeTrack library architecture. Update it as design decisions evolve.*
+_This document is the single source of truth for the LifeTrack library architecture. Update it as
+design decisions evolve._
