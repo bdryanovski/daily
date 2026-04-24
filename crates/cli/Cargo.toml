@@ -1,0 +1,10 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+engine = { path = "../engine" }
+domain = { path = "../domain" }
+storage_sqlite = { path = "../storage_sqlite" }
+serde_json = "1"

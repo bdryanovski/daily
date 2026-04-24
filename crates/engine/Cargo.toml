@@ -1,0 +1,9 @@
+[package]
+name = "engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+storage = { path = '../storage' }
+domain = { path = '../domain' }
+core = { path = '../core' }

@@ -1,0 +1,13 @@
+[workspace]
+members = [
+  "crates/core",
+  "crates/domain",
+  "crates/storage",
+  "crates/storage_sqlite",
+  "crates/storage_markdown",
+  "crates/engine",
+  "crates/index",
+  "crates/cli"
+]
+
+resolver = "2"
